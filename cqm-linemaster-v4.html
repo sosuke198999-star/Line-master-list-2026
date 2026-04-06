@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CQM Line Master</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+JP:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0a0e13;
+    --surface: #111720;
+    --surface2: #1a2333;
+    --surface3: #0f1a28;
+    --border: #1e2d42;
+    --accent: #00d4ff;
+    --accent2: #00ff9d;
+    --accent3: #ffd166;
+    --accent4: #c77dff;
+    --accent5: #ff9f7f;
+    --warn: #ff6b35;
+    --text: #e2eaf4;
+    --text2: #7a9bb5;
+    --text3: #3d5a73;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans JP', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; font-size: 14px; padding-bottom: 48px; }
+
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 16px; position: sticky; top: 0; z-index: 200; display: flex; align-items: center; justify-content: space-between; }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .header-badge { background: var(--accent); color: var(--bg); font-family: var(--mono); font-size: 9px; font-weight: 600; padding: 2px 7px; letter-spacing: 1px; }
+  .header-title { font-family: var(--mono); font-size: 13px; color: var(--text); }
+  .header-sub { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+
+  .nav { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .nav-btn { flex: 1; padding: 10px 8px; font-family: var(--mono); font-size: 11px; color: var(--text3); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s; letter-spacing: 0.5px; text-align: center; }
+  .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .main { padding: 14px; max-width: 600px; margin: 0 auto; }
+
+  .slabel { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 7px; margin-top: 16px; }
+  .slabel:first-child { margin-top: 0; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 6px; }
+  .field { padding: 10px 13px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .field:last-child { border-bottom: none; }
+  .flabel { font-family: var(--mono); font-size: 10px; color: var(--text2); min-width: 72px; flex-shrink: 0; }
+  .finput { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 2px; padding: 7px 10px; color: var(--text); font-family: var(--mono); font-size: 12px; outline: none; width: 100%; transition: border-color 0.2s; }
+  .finput:focus { border-color: var(--accent); }
+  .finput::placeholder { color: var(--text3); }
+  select.finput { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a9bb5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; cursor: pointer; }
+
+  /* Multi block */
+  .mblock { background: var(--surface3); border: 1px solid var(--border); border-radius: 2px; margin-bottom: 8px; overflow: hidden; }
+  .mblock-hdr { display: flex; align-items: center; justify-content: space-between; padding: 7px 12px; border-bottom: 1px solid var(--border); }
+  .mblock-title { font-family: var(--mono); font-size: 10px; letter-spacing: 1px; }
+  .mblock-title.eq   { color: var(--accent); }
+  .mblock-title.mat  { color: var(--accent3); }
+  .mblock-title.cond { color: var(--accent2); }
+  .mblock-title.qc   { color: var(--accent4); }
+  .mblock-title.wi   { color: var(--text2); }
+  .mblock-title.qs   { color: var(--accent5); }
+
+  .del-btn { background: none; border: 1px solid var(--border); color: var(--text3); width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 2px; font-size: 14px; transition: all 0.2s; flex-shrink: 0; }
+  .del-btn:hover { border-color: var(--warn); color: var(--warn); }
+
+  .add-btn { background: none; border: 1px dashed var(--border); color: var(--text3); padding: 9px; width: 100%; cursor: pointer; font-family: var(--mono); font-size: 11px; border-radius: 2px; transition: all 0.2s; letter-spacing: 0.5px; margin-bottom: 6px; display: block; }
+  .add-btn.eq:hover   { border-color: var(--accent);  color: var(--accent); }
+  .add-btn.mat:hover  { border-color: var(--accent3); color: var(--accent3); }
+  .add-btn.cond:hover { border-color: var(--accent2); color: var(--accent2); }
+  .add-btn.qc:hover   { border-color: var(--accent4); color: var(--accent4); }
+  .add-btn.wi:hover   { border-color: var(--text2);   color: var(--text2); }
+  .add-btn.qs:hover   { border-color: var(--accent5); color: var(--accent5); }
+
+  .submit-btn { width: 100%; padding: 13px; background: var(--accent); color: var(--bg); border: none; font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 2px; cursor: pointer; transition: all 0.2s; margin-top: 10px; border-radius: 2px; }
+  .submit-btn:hover { background: #33deff; }
+  .submit-btn:active { transform: scale(0.99); }
+
+  /* Browse */
+  .stats-row { display: flex; gap: 1px; margin-bottom: 14px; }
+  .stat { flex: 1; background: var(--surface); border: 1px solid var(--border); padding: 10px 8px; text-align: center; }
+  .stat-n { font-family: var(--mono); font-size: 20px; color: var(--accent); display: block; }
+  .stat-l { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 1px; }
+
+  .factory-card { background: var(--surface); border: 1px solid var(--border); border-radius: 2px; margin-bottom: 10px; overflow: hidden; }
+  .factory-hdr { padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  .factory-name { font-family: var(--mono); font-size: 13px; color: var(--accent); }
+  .factory-body { display: none; border-top: 1px solid var(--border); }
+  .factory-body.open { display: block; }
+
+  .line-card { border-bottom: 1px solid var(--border); }
+  .line-card:last-child { border-bottom: none; }
+  .line-hdr { padding: 9px 14px 9px 18px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; background: var(--surface2); }
+  .line-name { font-family: var(--mono); font-size: 12px; color: var(--accent3); }
+  .line-customer { font-family: var(--mono); font-size: 10px; color: var(--text2); margin-left: 8px; }
+  .line-body { display: none; }
+  .line-body.open { display: block; }
+
+  .process-block { border-top: 1px solid var(--border); padding: 12px 14px 12px 22px; }
+  .process-title { font-family: var(--mono); font-size: 11px; color: var(--accent4); letter-spacing: 1px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .process-title::before { content: '▸'; font-size: 10px; }
+
+  .sub-label { font-family: var(--mono); font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; margin: 10px 0 5px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  .sub-label.eq   { color: var(--accent); }
+  .sub-label.mat  { color: var(--accent3); }
+  .sub-label.cond { color: var(--accent2); }
+  .sub-label.qc   { color: var(--accent4); }
+  .sub-label.doc  { color: var(--text2); }
+
+  .info-row { display: flex; gap: 8px; margin-bottom: 5px; align-items: flex-start; }
+  .info-key { font-family: var(--mono); font-size: 10px; color: var(--text3); min-width: 68px; flex-shrink: 0; padding-top: 1px; }
+  .info-val { font-family: var(--mono); font-size: 11px; color: var(--text); word-break: break-all; line-height: 1.5; }
+
+  .entry-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 2px; padding: 8px 10px; margin-bottom: 6px; }
+  .entry-title { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-bottom: 5px; letter-spacing: 0.5px; }
+
+  .process-actions { display: flex; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .pact-btn { flex: 1; padding: 7px; background: none; border: 1px solid var(--border); color: var(--text2); font-family: var(--mono); font-size: 10px; cursor: pointer; border-radius: 2px; transition: all 0.2s; }
+  .pact-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .pact-btn.danger:hover { border-color: var(--warn); color: var(--warn); }
+
+  .chevron { font-size: 10px; color: var(--text3); transition: transform 0.2s; display: inline-block; }
+  .chevron.open { transform: rotate(90deg); }
+
+  .export-btn { width: 100%; padding: 12px; background: none; border: 1px solid var(--accent2); color: var(--accent2); font-family: var(--mono); font-size: 11px; letter-spacing: 2px; cursor: pointer; transition: all 0.2s; margin-bottom: 10px; border-radius: 2px; }
+  .export-btn:hover { background: var(--accent2); color: var(--bg); }
+
+  .empty { text-align: center; padding: 48px 20px; color: var(--text3); font-family: var(--mono); font-size: 11px; letter-spacing: 1px; }
+  .empty-icon { font-size: 36px; margin-bottom: 14px; opacity: 0.4; }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--accent2); color: var(--bg); font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 10px 20px; letter-spacing: 1px; z-index: 999; transition: transform 0.3s; white-space: nowrap; border-radius: 2px; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .edit-banner { background: rgba(255,209,102,0.12); border: 1px solid var(--accent3); border-radius: 2px; padding: 10px 13px; margin-bottom: 12px; display: none; align-items: center; justify-content: space-between; }
+  .edit-banner.show { display: flex; }
+  .edit-banner-text { font-family: var(--mono); font-size: 11px; color: var(--accent3); }
+  .edit-cancel-btn { background: none; border: 1px solid var(--accent3); color: var(--accent3); font-family: var(--mono); font-size: 10px; padding: 5px 10px; cursor: pointer; border-radius: 2px; }
+  .edit-cancel-btn:hover { background: var(--accent3); color: var(--bg); }
+  .submit-btn.edit-mode { background: var(--accent3) !important; color: var(--bg) !important; }
+  .master-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 13px; border-bottom: 1px solid var(--border); }
+  .master-item:last-child { border-bottom: none; }
+  .master-item-label { font-family: var(--mono); font-size: 12px; color: var(--text); }
+  .master-empty { padding: 14px 13px; font-family: var(--mono); font-size: 11px; color: var(--text3); }
+  .master-item-confirming { background: rgba(255,107,53,0.1); border-color: var(--warn) !important; }
+  .master-item-confirming .master-item-label { color: var(--warn); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="header-badge">CQM</div>
+    <div class="header-title">Line Master</div>
+  </div>
+  <div class="header-sub" id="headerSub">0F / 0L / 0P</div>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="showTab('input')">＋ 登録</button>
+  <button class="nav-btn" onclick="showTab('browse')">一覧</button>
+  <button class="nav-btn" onclick="showTab('master')">マスタ</button>
+  <button class="nav-btn" onclick="showTab('export')">出力</button>
+</div>
+
+<!-- ═══ INPUT ═══ -->
+<div id="tab-input" class="main">
+
+  <div class="edit-banner" id="editBanner">
+    <span class="edit-banner-text">✏ 編集モード</span>
+    <button class="edit-cancel-btn" onclick="cancelEdit()">キャンセル</button>
+  </div>
+
+  <div class="slabel">基本情報</div>
+  <div class="card">
+    <div class="field"><label class="flabel">工場番号</label>
+      <select class="finput" id="factoryNo">
+        <option value="">-- 選択 --</option>
+        <option value="工場1">工場1</option>
+        <option value="工場2">工場2</option>
+        <option value="工場3">工場3</option>
+      </select>
+    </div>
+    <div class="field"><label class="flabel">ライン番号</label>
+      <select class="finput" id="lineNo"><option value="">-- 選択 --</option></select>
+    </div>
+    <div class="field"><label class="flabel">顧客</label>
+      <select class="finput" id="customer"><option value="">-- 選択 --</option></select>
+    </div>
+    <div class="field"><label class="flabel">工程</label>
+<select class="finput" id="process"><option value="">-- 選択 --</option></select>
+    </div>
+  </div>
+
+  <!-- 設備 -->
+  <div class="slabel">設備</div>
+  <div id="eqBlocks"></div>
+  <button class="add-btn eq" onclick="addBlock('eqBlocks','eq','EQUIPMENT',['設備名|eq-name|例: スクリーン印刷機','メーカー|eq-maker|例: DEK','型番|eq-model|例: Horizon 03iX','台数|eq-count|例: 2'])">＋ 設備を追加</button>
+
+  <!-- 材料 -->
+  <div class="slabel">材料</div>
+  <div id="matBlocks"></div>
+  <button class="add-btn mat" onclick="addBlock('matBlocks','mat','MATERIAL',['材料名|mat-name|例: Solder Paste','メーカー|mat-maker|例: Henkel','型番|mat-model|例: GC10','管理方法|mat-mgmt|例: 冷蔵保管 4℃以下'])">＋ 材料を追加</button>
+
+  <!-- 条件 -->
+  <div class="slabel">条件</div>
+  <div id="condBlocks"></div>
+  <button class="add-btn cond" onclick="addBlock('condBlocks','cond','CONDITION',['項目|cond-item|例: 印刷圧力','規格|cond-spec|例: 0.15±0.05MPa','頻度|cond-freq|例: 毎ロット','方法|cond-method|例: 圧力計で確認'])">＋ 条件を追加</button>
+
+  <!-- 品質管理 -->
+  <div class="slabel">品質管理</div>
+  <div id="qcBlocks"></div>
+  <button class="add-btn qc" onclick="addBlock('qcBlocks','qc','QUALITY',['項目|qc-item|例: 半田量','規格|qc-spec|例: NG率 0.5%以下','頻度|qc-freq|例: 毎時','方法|qc-method|例: AOI自動検査'])">＋ 品質管理を追加</button>
+
+  <!-- 作業標準書 -->
+  <div class="slabel">作業標準書（WI）</div>
+  <div id="wiBlocks"></div>
+  <button class="add-btn wi" onclick="addBlock('wiBlocks','wi','WI',['番号|wi-no|例: WI-SMT-001','標準書名|wi-name|例: 半田印刷作業標準書'])">＋ 作業標準書を追加</button>
+
+  <!-- 検査基準書 -->
+  <div class="slabel">検査基準書（QS）</div>
+  <div id="qsBlocks"></div>
+  <button class="add-btn qs" onclick="addBlock('qsBlocks','qs','QS',['番号|qs-no|例: QS-SMT-001','基準書名|qs-name|例: 半田印刷検査基準書'])">＋ 検査基準書を追加</button>
+
+  <button class="submit-btn" id="submitBtn" onclick="saveRecord()">▶ 登録する</button>
+</div>
+
+<!-- ═══ BROWSE ═══ -->
+<div id="tab-browse" class="main" style="display:none">
+  <div class="stats-row" id="statsRow"></div>
+  <div style="margin-bottom:10px">
+    <button class="export-btn" style="border-color:var(--accent3);color:var(--accent3);margin-bottom:0" onclick="mergeExistingDuplicates()">🔗 重複レコードをマージ</button>
+  </div>
+  <div id="browseContent"></div>
+</div>
+
+<!-- ═══ MASTER ═══ -->
+<div id="tab-master" class="main" style="display:none">
+
+  <!-- ライン番号 -->
+  <div class="slabel">ライン番号</div>
+  <div class="card" id="lineList"></div>
+  <div style="display:flex;gap:8px;margin-bottom:6px">
+    <input class="finput" id="newLine" type="text" placeholder="例: LINE-1, L2" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:9px 12px">
+    <button class="submit-btn" style="width:auto;padding:9px 16px;margin-top:0" onclick="addMaster('lines','newLine')">追加</button>
+  </div>
+
+  <!-- 顧客 -->
+  <div class="slabel">顧客</div>
+  <div class="card" id="customerList"></div>
+  <div style="display:flex;gap:8px;margin-bottom:6px">
+    <input class="finput" id="newCustomer" type="text" placeholder="例: Toyota, Sony" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:9px 12px">
+    <button class="submit-btn" style="width:auto;padding:9px 16px;margin-top:0" onclick="addMaster('customers','newCustomer')">追加</button>
+  </div>
+
+  <!-- 工程 -->
+  <div class="slabel">工程</div>
+  <div class="card" id="processList"></div>
+  <div style="display:flex;gap:8px;margin-bottom:6px">
+    <input class="finput" id="newProcess" type="text" placeholder="例: ICT検査, 最終検査" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:9px 12px">
+    <button class="submit-btn" style="width:auto;padding:9px 16px;margin-top:0" onclick="addMaster('processes','newProcess')">追加</button>
+  </div>
+
+</div>
+
+<!-- ═══ EXPORT ═══ -->
+<div id="tab-export" class="main" style="display:none">
+  <div class="slabel">エクスポート</div>
+  <button class="export-btn" onclick="exportCSV()">📊 CSV ダウンロード</button>
+  <button class="export-btn" onclick="exportClaude()">🤖 Claude用テキスト生成</button>
+  <div id="claudeOut" style="display:none; margin-top:14px">
+    <div class="slabel">Claude用テキスト</div>
+    <div class="card" style="padding:13px">
+      <textarea class="finput" id="claudeText" style="min-height:280px;font-size:11px;line-height:1.6" readonly></textarea>
+    </div>
+    <button class="pact-btn" style="width:100%;margin-top:8px;padding:11px" onclick="copyClaude()">📋 コピー</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY = 'cqm_lm_v3';
+const MASTER_KEY = 'cqm_master_v1';
+let editingId = null;
+const counters = {};
+
+// ─── DB ───
+function db() { try { return JSON.parse(localStorage.getItem(KEY)||'[]'); } catch { return []; } }
+function save(d) { localStorage.setItem(KEY, JSON.stringify(d)); updateSub(); }
+function updateSub() {
+  const d = db();
+  const f = new Set(d.map(r=>r.factoryNo)).size;
+  const l = new Set(d.map(r=>r.factoryNo+'|'+r.lineNo)).size;
+  document.getElementById('headerSub').textContent = `${f}F / ${l}L / ${d.length}P`;
+}
+
+// ─── Master ───
+function getMaster() {
+  try {
+    const d = JSON.parse(localStorage.getItem(MASTER_KEY) || '{}');
+    return {
+      lines:     d.lines     || ['LINE-1','LINE-2','LINE-3'],
+      customers: d.customers || ['Toyota','Sony','Panasonic'],
+      processes: d.processes || ['受入','材料準備','半田印刷','SPI','Mounting','Reflow','AOI'],
+    };
+  } catch { return { lines:[], customers:[], processes:[] }; }
+}
+function saveMaster(m) { localStorage.setItem(MASTER_KEY, JSON.stringify(m)); }
+
+function addMaster(type, inputId) {
+  const val = document.getElementById(inputId).value.trim();
+  if (!val) { showToast('入力してください'); return; }
+  const m = getMaster();
+  if (m[type].includes(val)) { showToast('既に存在します'); return; }
+  m[type].push(val);
+  saveMaster(m);
+  document.getElementById(inputId).value = '';
+  renderMaster();
+  populateSelects();
+  showToast('追加しました ✓');
+}
+
+function deleteMaster(type, val) {
+  const m = getMaster();
+  m[type] = m[type].filter(v => v !== val);
+  saveMaster(m);
+  renderMaster();
+  populateSelects();
+  showToast('削除しました');
+}
+
+function renderMaster() {
+  const m = getMaster();
+  const renderList = (containerId, type, items) => {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.innerHTML = '';
+    if (!items.length) {
+      el.innerHTML = '<div class="master-empty">未登録</div>';
+      return;
+    }
+    items.forEach(v => {
+      const row = document.createElement('div');
+      row.className = 'master-item';
+      const label = document.createElement('span');
+      label.className = 'master-item-label';
+      label.textContent = v;
+      const btn = document.createElement('button');
+      btn.className = 'del-btn';
+      btn.textContent = '×';
+      btn.onclick = () => deleteMaster(type, v);
+      row.appendChild(label);
+      row.appendChild(btn);
+      el.appendChild(row);
+    });
+  };
+  renderList('lineList',     'lines',     m.lines);
+  renderList('customerList', 'customers', m.customers);
+  renderList('processList',  'processes', m.processes);
+}
+
+function populateSelects() {
+  const m = getMaster();
+  const fillSelect = (id, items) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cur = el.value;
+    el.innerHTML = '<option value="">-- 選択 --</option>' +
+      items.map(v => `<option value="${v}"${v===cur?' selected':''}>${v}</option>`).join('');
+  };
+  fillSelect('lineNo',   m.lines);
+  fillSelect('customer', m.customers);
+  fillSelect('process',  m.processes);
+}
+
+// ─── Block builder ───
+function addBlock(containerId, type, titlePrefix, fields) {
+  if (!counters[containerId]) counters[containerId] = 0;
+  counters[containerId]++;
+  const n = counters[containerId];
+  const id = type + '_' + n + '_' + Date.now();
+  const div = document.createElement('div');
+  div.className = 'mblock'; div.id = id;
+  const fieldsHTML = fields.map((f, i) => {
+    const [label, cls, ph] = f.split('|');
+    const isLast = i === fields.length - 1;
+    return `<div class="field"${isLast?' style="border:none"':''}><label class="flabel">${label}</label><input class="finput ${cls}" type="text" placeholder="${ph}"></div>`;
+  }).join('');
+  div.innerHTML = `
+    <div class="mblock-hdr" style="background:var(--surface2)">
+      <span class="mblock-title ${type}">${titlePrefix} #${n}</span>
+      <button class="del-btn" onclick="document.getElementById('${id}').remove()">×</button>
+    </div>
+    ${fieldsHTML}
+  `;
+  document.getElementById(containerId).appendChild(div);
+}
+
+function collectBlocks(containerId, classes) {
+  return Array.from(document.querySelectorAll(`#${containerId} .mblock`)).map(b => {
+    const obj = {};
+    classes.forEach(c => { obj[c] = b.querySelector(`.${c}`)?.value.trim()||''; });
+    return obj;
+  }).filter(o => Object.values(o).some(v => v));
+}
+
+// ─── Save ───
+function saveRecord() {
+  const factoryNo = document.getElementById('factoryNo').value.trim();
+  const lineNo    = document.getElementById('lineNo').value;
+  const process   = document.getElementById('process').value;
+  if (!factoryNo) { showToast('工場番号を選択してください'); return; }
+  if (!lineNo)    { showToast('ライン番号を選択してください'); return; }
+  if (!process)   { showToast('工程を選択してください'); return; }
+
+  const fields = {
+    factoryNo, lineNo,
+    customer:   document.getElementById('customer').value,
+    process,
+    equipments: collectBlocks('eqBlocks',  ['eq-name','eq-maker','eq-model','eq-count']),
+    materials:  collectBlocks('matBlocks',  ['mat-name','mat-maker','mat-model','mat-mgmt']),
+    conditions: collectBlocks('condBlocks', ['cond-item','cond-spec','cond-freq','cond-method']),
+    qualities:  collectBlocks('qcBlocks',   ['qc-item','qc-spec','qc-freq','qc-method']),
+    wis:        collectBlocks('wiBlocks',   ['wi-no','wi-name']),
+    qss:        collectBlocks('qsBlocks',   ['qs-no','qs-name']),
+  };
+
+  let data = db();
+
+  if (editingId) {
+    data = data.map(r => r.id === editingId
+      ? { ...r, ...fields, timestamp: r.timestamp, updatedAt: new Date().toLocaleString('ja-JP') }
+      : r
+    );
+    save(data);
+    cancelEdit();
+    showToast('更新しました ✓');
+    return;
+  }
+
+  const existIdx = data.findIndex(r =>
+    r.factoryNo === fields.factoryNo &&
+    r.lineNo    === fields.lineNo &&
+    r.process   === fields.process
+  );
+
+  if (existIdx !== -1) {
+    const exist = data[existIdx];
+    const merge = (a1, a2) => {
+      const seen = new Set((a1||[]).map(x => JSON.stringify(x)));
+      const out = [...(a1||[])];
+      (a2||[]).forEach(x => { const k=JSON.stringify(x); if(!seen.has(k)){seen.add(k);out.push(x);} });
+      return out;
+    };
+    data[existIdx] = {
+      ...exist,
+      customer:   fields.customer || exist.customer,
+      equipments: merge(exist.equipments, fields.equipments),
+      materials:  merge(exist.materials,  fields.materials),
+      conditions: merge(exist.conditions, fields.conditions),
+      qualities:  merge(exist.qualities,  fields.qualities),
+      wis:        merge(exist.wis,        fields.wis),
+      qss:        merge(exist.qss,        fields.qss),
+      updatedAt:  new Date().toLocaleString('ja-JP'),
+    };
+    save(data);
+    clearForm();
+    showToast('マージしました ✓');
+  } else {
+    data.push({ id: Date.now(), timestamp: new Date().toLocaleString('ja-JP'), ...fields });
+    save(data);
+    clearForm();
+    showToast('登録しました ✓');
+  }
+}
+
+function clearForm() {
+  ['factoryNo','lineNo','customer','process'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  ['eqBlocks','matBlocks','condBlocks','qcBlocks','wiBlocks','qsBlocks'].forEach(id => {
+    document.getElementById(id).innerHTML = '';
+  });
+  Object.keys(counters).forEach(k => delete counters[k]);
+}
+
+// ─── Tab ───
+function showTab(tab) {
+  ['input','browse','master','export'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
+  });
+  document.querySelectorAll('.nav-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['input','browse','master','export'][i]===tab);
+  });
+  if (tab==='browse') renderBrowse();
+  if (tab==='master') renderMaster();
+  if (tab==='input')  populateSelects();
+}
+
+// ─── Browse ───
+function renderBrowse() {
+  const data = db();
+  const statsRow = document.getElementById('statsRow');
+  const container = document.getElementById('browseContent');
+  const fSet = new Set(data.map(r=>r.factoryNo));
+  const lSet = new Set(data.map(r=>r.factoryNo+'|'+r.lineNo));
+  statsRow.innerHTML = `
+    <div class="stat"><span class="stat-n">${fSet.size}</span><span class="stat-l">工場</span></div>
+    <div class="stat"><span class="stat-n">${lSet.size}</span><span class="stat-l">ライン</span></div>
+    <div class="stat"><span class="stat-n">${data.length}</span><span class="stat-l">工程</span></div>
+  `;
+  if (!data.length) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">🏭</div>まだデータがありません</div>';
+    return;
+  }
+  const grouped = {};
+  data.forEach(r => {
+    if (!grouped[r.factoryNo]) grouped[r.factoryNo] = {};
+    if (!grouped[r.factoryNo][r.lineNo]) grouped[r.factoryNo][r.lineNo] = [];
+    grouped[r.factoryNo][r.lineNo].push(r);
+  });
+  container.innerHTML = Object.entries(grouped).map(([factory, lines]) => {
+    const fId = 'f_' + Math.random().toString(36).slice(2,8);
+    const lineHTML = Object.entries(lines).map(([lineNo, records]) => {
+      const lId = 'l_' + Math.random().toString(36).slice(2,8);
+      const customer = records[0]?.customer || '';
+      const processHTML = records.map(r => `
+        <div class="process-block">
+          <div class="process-title">${r.process}</div>
+          ${r.equipments?.length ? `<div class="sub-label eq">設備</div>${r.equipments.map(e=>`
+            <div class="entry-block">
+              ${e['eq-name']?`<div class="info-row"><span class="info-key">設備名</span><span class="info-val">${e['eq-name']}</span></div>`:''}
+              ${e['eq-maker']?`<div class="info-row"><span class="info-key">メーカー</span><span class="info-val">${e['eq-maker']}</span></div>`:''}
+              ${e['eq-model']?`<div class="info-row"><span class="info-key">型番</span><span class="info-val">${e['eq-model']}</span></div>`:''}
+              ${e['eq-count']?`<div class="info-row"><span class="info-key">台数</span><span class="info-val">${e['eq-count']}台</span></div>`:''}
+            </div>`).join('')}` : ''}
+          ${r.materials?.length ? `<div class="sub-label mat">材料</div>${r.materials.map(m=>`
+            <div class="entry-block">
+              ${m['mat-name']?`<div class="info-row"><span class="info-key">材料名</span><span class="info-val">${m['mat-name']}</span></div>`:''}
+              ${m['mat-maker']?`<div class="info-row"><span class="info-key">メーカー</span><span class="info-val">${m['mat-maker']}</span></div>`:''}
+              ${m['mat-model']?`<div class="info-row"><span class="info-key">型番</span><span class="info-val">${m['mat-model']}</span></div>`:''}
+              ${m['mat-mgmt']?`<div class="info-row"><span class="info-key">管理方法</span><span class="info-val">${m['mat-mgmt']}</span></div>`:''}
+            </div>`).join('')}` : ''}
+          ${r.conditions?.length ? `<div class="sub-label cond">条件</div>${r.conditions.map(c=>`
+            <div class="entry-block">
+              ${c['cond-item']?`<div class="info-row"><span class="info-key">項目</span><span class="info-val">${c['cond-item']}</span></div>`:''}
+              ${c['cond-spec']?`<div class="info-row"><span class="info-key">規格</span><span class="info-val">${c['cond-spec']}</span></div>`:''}
+              ${c['cond-freq']?`<div class="info-row"><span class="info-key">頻度</span><span class="info-val">${c['cond-freq']}</span></div>`:''}
+              ${c['cond-method']?`<div class="info-row"><span class="info-key">方法</span><span class="info-val">${c['cond-method']}</span></div>`:''}
+            </div>`).join('')}` : ''}
+          ${r.qualities?.length ? `<div class="sub-label qc">品質管理</div>${r.qualities.map(q=>`
+            <div class="entry-block">
+              ${q['qc-item']?`<div class="info-row"><span class="info-key">項目</span><span class="info-val">${q['qc-item']}</span></div>`:''}
+              ${q['qc-spec']?`<div class="info-row"><span class="info-key">規格</span><span class="info-val">${q['qc-spec']}</span></div>`:''}
+              ${q['qc-freq']?`<div class="info-row"><span class="info-key">頻度</span><span class="info-val">${q['qc-freq']}</span></div>`:''}
+              ${q['qc-method']?`<div class="info-row"><span class="info-key">方法</span><span class="info-val">${q['qc-method']}</span></div>`:''}
+            </div>`).join('')}` : ''}
+          ${(r.wis?.length||r.qss?.length) ? `<div class="sub-label doc">文書</div>
+            ${(r.wis||[]).map(w=>`<div class="entry-block">
+              <div class="entry-title">WI</div>
+              ${w['wi-no']?`<div class="info-row"><span class="info-key">番号</span><span class="info-val">${w['wi-no']}</span></div>`:''}
+              ${w['wi-name']?`<div class="info-row"><span class="info-key">標準書名</span><span class="info-val">${w['wi-name']}</span></div>`:''}
+            </div>`).join('')}
+            ${(r.qss||[]).map(q=>`<div class="entry-block">
+              <div class="entry-title">QS</div>
+              ${q['qs-no']?`<div class="info-row"><span class="info-key">番号</span><span class="info-val">${q['qs-no']}</span></div>`:''}
+              ${q['qs-name']?`<div class="info-row"><span class="info-key">基準書名</span><span class="info-val">${q['qs-name']}</span></div>`:''}
+            </div>`).join('')}` : ''}
+          <div class="process-actions">
+            <button class="pact-btn" onclick="editRecord(${r.id})">✏ 編集</button>
+            <button class="pact-btn danger" onclick="deleteRecord(${r.id})">🗑 削除</button>
+          </div>
+        </div>
+      `).join('');
+      return `
+        <div class="line-card">
+          <div class="line-hdr" onclick="toggle('${lId}')">
+            <div>
+              <span class="line-name">${lineNo}</span>
+              ${customer?`<span class="line-customer">${customer}</span>`:''}
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-family:var(--mono);font-size:10px;color:var(--text3)">${records.length}工程</span>
+              <span class="chevron" id="chev-${lId}">▶</span>
+            </div>
+          </div>
+          <div class="line-body" id="${lId}">${processHTML}</div>
+        </div>`;
+    }).join('');
+    return `
+      <div class="factory-card">
+        <div class="factory-hdr" onclick="toggle('${fId}')">
+          <div class="factory-name">🏭 ${factory}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-family:var(--mono);font-size:10px;color:var(--text3)">${Object.keys(lines).length}ライン</span>
+            <span class="chevron" id="chev-${fId}">▶</span>
+          </div>
+        </div>
+        <div class="factory-body" id="${fId}">${lineHTML}</div>
+      </div>`;
+  }).join('');
+}
+
+function toggle(id) {
+  document.getElementById(id)?.classList.toggle('open');
+  document.getElementById('chev-'+id)?.classList.toggle('open');
+}
+
+function deleteRecord(id) {
+  save(db().filter(r => r.id !== id));
+  renderBrowse();
+  showToast('削除しました');
+}
+
+function mergeExistingDuplicates() {
+  let data = db();
+  const merged = {};
+  data.forEach(r => {
+    const key = r.factoryNo + '||' + r.lineNo + '||' + r.process;
+    if (!merged[key]) {
+      merged[key] = { ...r };
+    } else {
+      const exist = merged[key];
+      const mergeArr = (a1, a2) => {
+        const seen = new Set((a1||[]).map(x=>JSON.stringify(x)));
+        const out = [...(a1||[])];
+        (a2||[]).forEach(x=>{const k=JSON.stringify(x);if(!seen.has(k)){seen.add(k);out.push(x);}});
+        return out;
+      };
+      merged[key] = {
+        ...exist,
+        customer:   r.customer || exist.customer,
+        equipments: mergeArr(exist.equipments, r.equipments),
+        materials:  mergeArr(exist.materials,  r.materials),
+        conditions: mergeArr(exist.conditions, r.conditions),
+        qualities:  mergeArr(exist.qualities,  r.qualities),
+        wis:        mergeArr(exist.wis,        r.wis),
+        qss:        mergeArr(exist.qss,        r.qss),
+        updatedAt:  new Date().toLocaleString('ja-JP'),
+      };
+    }
+  });
+  const result = Object.values(merged);
+  const reduced = data.length - result.length;
+  save(result);
+  renderBrowse();
+  showToast(reduced > 0 ? reduced + '件をマージしました ✓' : '重複なし');
+}
+
+// ─── Edit ───
+function editRecord(id) {
+  const r = db().find(d => d.id === id);
+  if (!r) return;
+  showTab('input');
+  editingId = id;
+  document.getElementById('editBanner').classList.add('show');
+  const btn = document.getElementById('submitBtn');
+  btn.textContent = '▶ 更新する';
+  btn.classList.add('edit-mode');
+  document.getElementById('factoryNo').value = r.factoryNo || '';
+  populateSelects();
+  document.getElementById('lineNo').value   = r.lineNo || '';
+  document.getElementById('customer').value = r.customer || '';
+  document.getElementById('process').value  = r.process || '';
+  ['eqBlocks','matBlocks','condBlocks','qcBlocks','wiBlocks','qsBlocks'].forEach(id => {
+    document.getElementById(id).innerHTML = '';
+  });
+  Object.keys(counters).forEach(k => delete counters[k]);
+  const fillBlocks = (containerId, type, titlePrefix, fields, items, classes) => {
+    items.forEach(item => {
+      addBlock(containerId, type, titlePrefix, fields);
+      const block = document.querySelector(`#${containerId} .mblock:last-child`);
+      if (!block) return;
+      classes.forEach(cls => {
+        const el = block.querySelector(`.${cls}`);
+        if (el) el.value = item[cls] || '';
+      });
+    });
+  };
+  fillBlocks('eqBlocks',   'eq',   'EQUIPMENT', ['設備名|eq-name|例: スクリーン印刷機','メーカー|eq-maker|例: DEK','型番|eq-model|例: Horizon 03iX','台数|eq-count|例: 2'],   r.equipments||[], ['eq-name','eq-maker','eq-model','eq-count']);
+  fillBlocks('matBlocks',  'mat',  'MATERIAL',  ['材料名|mat-name|例: Solder Paste','メーカー|mat-maker|例: Henkel','型番|mat-model|例: GC10','管理方法|mat-mgmt|例: 冷蔵保管 4℃以下'],  r.materials||[],  ['mat-name','mat-maker','mat-model','mat-mgmt']);
+  fillBlocks('condBlocks', 'cond', 'CONDITION', ['項目|cond-item|例: 印刷圧力','規格|cond-spec|例: 0.15±0.05MPa','頻度|cond-freq|例: 毎ロット','方法|cond-method|例: 圧力計で確認'], r.conditions||[], ['cond-item','cond-spec','cond-freq','cond-method']);
+  fillBlocks('qcBlocks',   'qc',   'QUALITY',   ['項目|qc-item|例: 半田量','規格|qc-spec|例: NG率 0.5%以下','頻度|qc-freq|例: 毎時','方法|qc-method|例: AOI自動検査'],   r.qualities||[],  ['qc-item','qc-spec','qc-freq','qc-method']);
+  fillBlocks('wiBlocks',   'wi',   'WI',        ['番号|wi-no|例: WI-SMT-001','標準書名|wi-name|例: 半田印刷作業標準書'],   r.wis||[],  ['wi-no','wi-name']);
+  fillBlocks('qsBlocks',   'qs',   'QS',        ['番号|qs-no|例: QS-SMT-001','基準書名|qs-name|例: 半田印刷検査基準書'], r.qss||[], ['qs-no','qs-name']);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEdit() {
+  editingId = null;
+  document.getElementById('editBanner').classList.remove('show');
+  const btn = document.getElementById('submitBtn');
+  btn.textContent = '▶ 登録する';
+  btn.classList.remove('edit-mode');
+  clearForm();
+}
+
+// ─── Export ───
+function exportCSV() {
+  const data = db();
+  if (!data.length) { showToast('データがありません'); return; }
+  const rows = [['工場','ライン','顧客','工程','種別','項目/設備名/材料名','規格/メーカー','頻度/型番','方法/管理/台数','番号','名称','登録日時']];
+  data.forEach(r => {
+    const base = [r.factoryNo, r.lineNo, r.customer||'', r.process];
+    const ts = r.timestamp;
+    const push = (type, ...vals) => rows.push([...base, type, ...vals, ts].map(v=>`"${String(v||'').replace(/"/g,'""')}"`));
+    (r.equipments||[]).forEach(e => push('設備', e['eq-name']||'', e['eq-maker']||'', e['eq-count']||'', e['eq-model']||'', '', ''));
+    (r.materials||[]).forEach(m => push('材料', m['mat-name']||'', m['mat-maker']||'', m['mat-model']||'', m['mat-mgmt']||'', '', ''));
+    (r.conditions||[]).forEach(c => push('条件', c['cond-item']||'', c['cond-spec']||'', c['cond-freq']||'', c['cond-method']||'', '', ''));
+    (r.qualities||[]).forEach(q => push('品質', q['qc-item']||'', q['qc-spec']||'', q['qc-freq']||'', q['qc-method']||'', '', ''));
+    (r.wis||[]).forEach(w => push('WI', '', '', '', '', w['wi-no']||'', w['wi-name']||''));
+    (r.qss||[]).forEach(q => push('QS', '', '', '', '', q['qs-no']||'', q['qs-name']||''));
+    if (![...(r.equipments||[]),...(r.materials||[]),...(r.conditions||[]),...(r.qualities||[]),...(r.wis||[]),...(r.qss||[])].length) push('', '', '', '', '', '', '');
+  });
+  const csv = '\uFEFF' + rows.map(r=>r.join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'CQM_LineMaster_' + new Date().toLocaleDateString('ja-JP').replace(/\//g,'') + '.csv';
+  a.click();
+  showToast('CSVダウンロード完了');
+}
+
+function exportClaude() {
+  const data = db();
+  if (!data.length) { showToast('データがありません'); return; }
+  const grouped = {};
+  data.forEach(r => {
+    if (!grouped[r.factoryNo]) grouped[r.factoryNo] = {};
+    if (!grouped[r.factoryNo][r.lineNo]) grouped[r.factoryNo][r.lineNo] = [];
+    grouped[r.factoryNo][r.lineNo].push(r);
+  });
+  let txt = `# CQM ライン台帳\n出力: ${new Date().toLocaleString('ja-JP')}\n\n---\n\n`;
+  Object.entries(grouped).forEach(([factory, lines]) => {
+    txt += `# 工場: ${factory}\n\n`;
+    Object.entries(lines).forEach(([lineNo, records]) => {
+      const customer = records[0]?.customer;
+      txt += `## ライン: ${lineNo}${customer?' (顧客: '+customer+')':''}\n\n`;
+      records.forEach(r => {
+        txt += `### 工程: ${r.process}\n`;
+        if (r.equipments?.length) { txt += `**設備:**\n`; r.equipments.forEach(e => txt += `- ${e['eq-name']||''}${e['eq-maker']?' ('+e['eq-maker']+')':''}${e['eq-model']?' '+e['eq-model']:''}${e['eq-count']?' x'+e['eq-count']+'台':''}\n`); }
+        if (r.materials?.length)  { txt += `**材料:**\n`; r.materials.forEach(m => txt += `- ${m['mat-name']||''}${m['mat-maker']?' ('+m['mat-maker']+')':''}${m['mat-model']?' '+m['mat-model']:''}${m['mat-mgmt']?' — 管理: '+m['mat-mgmt']:''}\n`); }
+        if (r.conditions?.length) { txt += `**条件:**\n`; r.conditions.forEach(c => txt += `- ${c['cond-item']||''}: 規格=${c['cond-spec']||'-'} / 頻度=${c['cond-freq']||'-'} / 方法=${c['cond-method']||'-'}\n`); }
+        if (r.qualities?.length)  { txt += `**品質管理:**\n`; r.qualities.forEach(q => txt += `- ${q['qc-item']||''}: 規格=${q['qc-spec']||'-'} / 頻度=${q['qc-freq']||'-'} / 方法=${q['qc-method']||'-'}\n`); }
+        if (r.wis?.length) { txt += `**作業標準書:**\n`; r.wis.forEach(w => txt += `- ${w['wi-no']||''} ${w['wi-name']||''}\n`); }
+        if (r.qss?.length) { txt += `**検査基準書:**\n`; r.qss.forEach(q => txt += `- ${q['qs-no']||''} ${q['qs-name']||''}\n`); }
+        txt += '\n';
+      });
+    });
+  });
+  txt += '---\n\n以上のライン台帳データを4M観点で分析し、品質リスクとコスト削減の改善ポイントを整理してください。';
+  document.getElementById('claudeText').value = txt;
+  document.getElementById('claudeOut').style.display = 'block';
+  showToast('テキスト生成完了');
+}
+
+function copyClaude() {
+  navigator.clipboard.writeText(document.getElementById('claudeText').value).then(() => showToast('コピーしました'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+updateSub();
+populateSelects();
+</script>
+</body>
+</html>
