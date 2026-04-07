@@ -139,10 +139,12 @@
   .edit-cancel-btn { background: none; border: 1px solid var(--accent3); color: var(--accent3); font-family: var(--mono); font-size: 10px; padding: 5px 10px; cursor: pointer; border-radius: 2px; }
   .edit-cancel-btn:hover { background: var(--accent3); color: var(--bg); }
   .submit-btn.edit-mode { background: var(--accent3) !important; color: var(--bg) !important; }
-  .master-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 13px; border-bottom: 1px solid var(--border); }
   .master-item:last-child { border-bottom: none; }
   .master-item-label { font-family: var(--mono); font-size: 12px; color: var(--text); }
   .master-empty { padding: 14px 13px; font-family: var(--mono); font-size: 11px; color: var(--text3); }
+  .master-edit-btn { background: none; border: 1px solid var(--border); color: var(--text2); width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 2px; font-size: 14px; transition: all 0.2s; flex-shrink: 0; }
+  .master-edit-btn:hover { border-color: var(--accent3); color: var(--accent3); }
+  .master-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 13px; border-bottom: 1px solid var(--border); }
   .master-item-confirming { background: rgba(255,107,53,0.1); border-color: var(--warn) !important; }
   .master-item-confirming .master-item-label { color: var(--warn); }
 </style>
@@ -302,8 +304,8 @@ function getMaster() {
     const d = JSON.parse(localStorage.getItem(MASTER_KEY) || '{}');
     return {
       lines:     d.lines     || ['LINE-1','LINE-2','LINE-3'],
-      customers: d.customers || ['Toyota','Sony','Panasonic'],
-      processes: d.processes || ['受入','材料準備','半田印刷','SPI','Mounting','Reflow','AOI'],
+      customers: d.customers || ['Daikin','Koito','Ricoh','OKI','TIESNA','DATAMAS','TOTO'],
+      processes: d.processes || ['Warehouse','Serial label','PCB loading(B)','Solder paste printing(B)','SPI(B)','Mounting(B)','Reflow(B)','AOI(B)','PCB loading(A)','Solder paste printing(A)','SPI(A)','Mounting(A)','Reflow(A)','AOI(A)','Manual Insert','Spray Fluxer','Wave soldering','ICT test','FCT test','Final inspection','Packing','OQC inspection'],
     };
   } catch { return { lines:[], customers:[], processes:[] }; }
 }
@@ -341,24 +343,86 @@ function renderMaster() {
       el.innerHTML = '<div class="master-empty">未登録</div>';
       return;
     }
-    items.forEach(v => {
+    items.forEach((v, i) => {
       const row = document.createElement('div');
       row.className = 'master-item';
+      row.id = `mitem_${type}_${i}`;
+
+      // Label (switches to input on edit)
       const label = document.createElement('span');
       label.className = 'master-item-label';
       label.textContent = v;
-      const btn = document.createElement('button');
-      btn.className = 'del-btn';
-      btn.textContent = '×';
-      btn.onclick = () => deleteMaster(type, v);
+
+      // Buttons
+      const btnWrap = document.createElement('div');
+      btnWrap.style.cssText = 'display:flex;gap:6px;flex-shrink:0';
+
+      const editBtn = document.createElement('button');
+      editBtn.className = 'master-edit-btn';
+      editBtn.textContent = '✎';
+      editBtn.title = '編集';
+      editBtn.onclick = () => startEditMaster(type, i, v, row, label, editBtn, delBtn);
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'del-btn';
+      delBtn.textContent = '×';
+      delBtn.onclick = () => deleteMaster(type, v);
+
+      btnWrap.appendChild(editBtn);
+      btnWrap.appendChild(delBtn);
       row.appendChild(label);
-      row.appendChild(btn);
+      row.appendChild(btnWrap);
       el.appendChild(row);
     });
   };
   renderList('lineList',     'lines',     m.lines);
   renderList('customerList', 'customers', m.customers);
   renderList('processList',  'processes', m.processes);
+}
+
+function startEditMaster(type, idx, oldVal, row, label, editBtn, delBtn) {
+  // Replace label with input
+  const input = document.createElement('input');
+  input.className = 'master-edit-input';
+  input.value = oldVal;
+  input.style.cssText = 'flex:1;font-size:13px;padding:4px 8px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--surface2);color:var(--text);outline:none;';
+  row.replaceChild(input, label);
+  input.focus();
+
+  // Change edit button to save
+  editBtn.textContent = '✓';
+  editBtn.style.color = 'var(--accent2)';
+  editBtn.onclick = () => saveEditMaster(type, oldVal, input.value.trim(), row, input, editBtn, delBtn);
+
+  // Change delete button to cancel
+  delBtn.textContent = '✕';
+  delBtn.onclick = () => {
+    row.replaceChild(label, input);
+    editBtn.textContent = '✎';
+    editBtn.style.color = '';
+    editBtn.onclick = () => startEditMaster(type, idx, oldVal, row, label, editBtn, delBtn);
+    delBtn.textContent = '×';
+    delBtn.onclick = () => deleteMaster(type, oldVal);
+  };
+
+  // Save on Enter
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') editBtn.click();
+    if (e.key === 'Escape') delBtn.click();
+  });
+}
+
+function saveEditMaster(type, oldVal, newVal, row, input, editBtn, delBtn) {
+  if (!newVal) { showToast('入力してください'); return; }
+  if (newVal === oldVal) { delBtn.click(); return; }
+  const m = getMaster();
+  if (m[type].includes(newVal)) { showToast('既に存在します'); return; }
+  const idx = m[type].indexOf(oldVal);
+  if (idx !== -1) m[type][idx] = newVal;
+  saveMaster(m);
+  renderMaster();
+  populateSelects();
+  showToast('更新しました ✓');
 }
 
 function populateSelects() {
